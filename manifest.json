@@ -1,0 +1,25 @@
+{
+  "name": "Ajudante do GeoGuessr",
+  "description": "Mostra tudo",
+  "version": "1.0",
+  "manifest_version": 3,
+  "action": {
+    "default_popup": "popup.html"
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "host_permissions": [
+    "<all_urls>"
+  ],
+  "permissions": [
+    "webRequest",
+    "notifications",
+    "storage",
+    "scripting",
+    "activeTab"
+  ],
+  "icons": {
+    "128": "logo.png"
+  }
+}
