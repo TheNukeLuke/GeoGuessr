@@ -41,16 +41,17 @@
     <h1>Geoguessr</h1>
     <p id="coordDisplayer"></p>
     <label for="distanceInputKm" class="short-text">Errar por quanto (KM):</label>
-    <input type="number" id="distanceInputKm" value="0" min="0" max="8800">
+    <input type="number" id="distanceInputKm" value="0" min="0" max="10000">
     <hr class="separater" />
     <div id="buttons">
         <button class="action-btn" id="submitBtn">Enviar Localização</button>
         <button class="action-btn" id="abrirMapa">Abrir no Maps</button>
         <button class="action-btn" id="palpInimigo">Palpite inimigo</button>
+        <button class="action-btn" id="cidPerto">Cidade Próxima</button>
     </div>
-    <div>
-        <span id="distanceResult"></span>
-    </div>
-    <script src="displayerScript.js"></script>
+    <div id="distanceResult"></div>
+    <div id="cidadePerto"></div>
+    
+    <script src="popup.js"></script>
 </body>
 </html>
