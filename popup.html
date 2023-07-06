@@ -26,7 +26,7 @@
             margin: 0 auto;
             margin-right: 5px;
             display: inline-block;
-            background-color: #001eff;
+            background-color: #cc302e;
             border: 0;
             color: #fff;
             font-weight: 700;
@@ -41,17 +41,12 @@
     <h1>Geoguessr</h1>
     <p id="coordDisplayer"></p>
     <label for="distanceInputKm" class="short-text">Errar por quanto (KM):</label>
-    <input type="number" id="distanceInputKm" value="0" min="0" max="10000">
+    <input type="number" id="distanceInputKm" value="0" min="0" max="8800">
     <hr class="separater" />
     <div id="buttons">
-        <button class="action-btn" id="submitBtn">Marcar no mapa a Localização</button>
+        <button class="action-btn" id="submitBtn">Enviar Localização</button>
         <button class="action-btn" id="abrirMapa">Abrir no Maps</button>
-        <button class="action-btn" id="palpInimigo">Palpite inimigo</button>
-        <button class="action-btn" id="cidPerto">Cidade Próxima</button>
-    </div>
-    <div id="distanceResult"></div>
-    <div id="cidadePerto"></div>
-    
-    <script src="popup.js"></script>
+    <script src="displayerScript.js"></script>
+    <div>
 </body>
 </html>
