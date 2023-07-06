@@ -69,24 +69,35 @@ function guess_location(latitude, longitude, distanceKm) {
   } else if (newLng > maxLng) {
     newLng = maxLng;
   }
-  sendPlaceMarkerMessage(newLat, newLng);
+  placeMarker(newLat, newLng);
 }
 
-function sendPlaceMarkerMessage(newLat, newLng) {
-  chrome.tabs.query({active: true, currentWindow: true}, function(tabs) {
-    console.log(`Enviando mensagem para a tab ${tabs[0].id}`);
-    chrome.tabs.sendMessage(tabs[0].id, {message: "place_marker", newLat: newLat, newLng: newLng});
+function placeMarker(newLat, newLng) {
+  chrome.tabs.query({active: true, currentWindow: true}, (tabs) => {
+    let code = function (coords) {
+      const element = document.getElementsByClassName("guess-map__canvas-container")[0];
+      const keys = Object.keys(element);
+      const key = keys.find(key => key.startsWith("__reactFiber$"));
+      const place = element[key].return.memoizedProps.onMarkerLocationChanged;
+      place(coords);
+    }
+
+    chrome.scripting.executeScript({
+      target: { tabId: tabs[0].id },
+      func: code,
+      args: [{lat: newLat, lng: newLng}],
+      world: 'MAIN'
+    });
   });
 }
 
 function CidadeProxima(latitude, longitude) {
-  // Fazendo uma solicitação para obter a cidade mais próxima
   const apiUrl = `http://api.geonames.org/findNearbyPlaceNameJSON?lat=${latitude}&lng=${longitude}&username=nukeluke`;
   fetch(apiUrl)
     .then(response => response.json())
     .then(data => {
       if (data.geonames.length > 0) {
-        const cidadeMaisProxima = data.geonames[0].adminName1;
+        const cidadeMaisProxima = data.geonames[0].toponymName;
         document.getElementById('cidadePerto').innerText = `Cidade mais próxima: ${cidadeMaisProxima}`;
       } else {
         document.getElementById('cidadePerto').innerText = 'Nenhuma cidade encontrada nas coordenadas fornecidas.';
@@ -94,12 +105,108 @@ function CidadeProxima(latitude, longitude) {
     })
 }
 
-document.getElementById('cidPerto').addEventListener('click', () => {
+function findID() {
+  const y = document.getElementsByClassName("user-nick_root__DUfvc")[0]
+  const keys = Object.keys(y)
+  const key = keys.find(key => key.startsWith("__reactFiber$"))
+  const props = y[key]
+  const id = props.return.memoizedProps.userId
+  return id
+}
+
+function findEnemyTeam(teams, userID) {
+  const player0 = teams[0].players[0].playerId
+  if (player0 !== userID) {
+      return teams[0]
+  } else {
+      return teams[1]
+  }
+}
+
+function isRoundValid(gameState, guesses) { 
+  const currentRound = gameState.currentRoundNumber
+  const numOfUserGuesses = guesses ? guesses.length : 0;
+  return currentRound === numOfUserGuesses
+}
+
+function getEnemyGuess() {
+  const x = document.getElementsByClassName("game_layout__TO_jf")[0]
+  if (!x) {
+      return null
+  }
+  const keys = Object.keys(x)
+  const key = keys.find(key => key.startsWith("__reactFiber$"))
+  const props = x[key]
+  const teamArr = props.return.memoizedProps.gameState.teams
+  const enemyTeam = findEnemyTeam(teamArr, findID())
+  const enemyGuesses = enemyTeam.players[0].guesses
+  const recentGuess = enemyGuesses[enemyGuesses.length - 1]
+
+  if (!isRoundValid(props.return.memoizedProps.gameState, enemyGuesses)) {
+      return null;
+  }
+  return recentGuess.distance
+}
+
+function fetchEnemyDistance() {
+  const enemyGuess = getEnemyGuess(); 
+
+  if (enemyGuess === null) {
+    return null;
+  }
+
+  const [latInimigo, lonInimigo] = enemyGuess;
+
+  const distance = calculateDistance(latInimigo, lonInimigo, latitude, longitude);
+  return distance;
+}
+
+function toRadians(degrees) {
+  return degrees * (Math.PI / 180);
+}
+
+function calculateDistance(latitude, longitude, latInimigo, lonInimigo) {
+  const earthRadius = 6371; // Raio médio da Terra em quilômetros
+
+  // Converter as coordenadas para radianos
+  const lat1Rad = toRadians(latitude);
+  const lon1Rad = toRadians(longitude);
+  const lat2Rad = toRadians(latInimigo);
+  const lon2Rad = toRadians(lonInimigo);
+
+  // Diferença das coordenadas
+  const deltaLat = lat2Rad - lat1Rad;
+  const deltaLon = lon2Rad - lon1Rad;
+
+  // Cálculo da distância usando a fórmula de haversine
+  const a = Math.sin(deltaLat / 2) * Math.sin(deltaLat / 2) +
+            Math.cos(lat1Rad) * Math.cos(lat2Rad) *
+            Math.sin(deltaLon / 2) * Math.sin(deltaLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  const distance = earthRadius * c;
+
+  return distance;
+}
+
+// Função para exibir a distância do palpite do inimigo
+function displayEnemyDistance() {
+  const enemyDistance = fetchEnemyDistance();
+
+  if (enemyDistance !== null) {
+    document.getElementById('distanceResult').textContent = `Distância do palpite do inimigo: ${enemyDistance.toFixed(2)} km`;
+  } else {
+    document.getElementById('distanceResult').textContent = 'Não foi possível obter a distância do palpite do inimigo.';
+  }
+}
+
+// Evento "click" no botão submitBtn
+document.getElementById("submitBtn").addEventListener("click", () => {
   getCoordinates((error, { latitude, longitude }) => {
     if (error) {
       console.error('Error retrieving coordinates:', error);
     } else {
-      CidadeProxima(latitude, longitude);
+      const distanceKm = document.getElementById('distanceInputKm').value;
+      guess_location(latitude, longitude, distanceKm);
     }
   });
 });
@@ -118,23 +225,24 @@ document.getElementById("abrirMapa").addEventListener("click", () => {
 });
 }, 800);
 
- //Evento de clique no botão para exibir a distância do palpite do inimigo
-document.getElementById('palpInimigo').addEventListener('click', () => {
-  console.log("Distancia")
-  //displayEnemyDistance();
-});
-
-
-// Evento "click" no botão submitBtn
-document.getElementById("submitBtn").addEventListener("click", () => {
-  setTimeout(() => {
+// Evento "click" no botão CidadeProxima
+document.getElementById('cidPerto').addEventListener('click', () => {
   getCoordinates((error, { latitude, longitude }) => {
     if (error) {
       console.error('Error retrieving coordinates:', error);
     } else {
-      const distanceKm = document.getElementById('distanceInputKm').value;
-      guess_location(latitude, longitude, distanceKm);
+      CidadeProxima(latitude, longitude);
     }
   });
-  }, 800);
+});
+
+//Evento de clique no botão para exibir a distância do palpite do inimigo
+document.getElementById('palpInimigo').addEventListener('click', () => {
+  console.log("Distancia")
+  distance = displayEnemyDistance();
+  if (distance > 0) {
+    document.getElementById('distanceResult').innerText = `Distancia do palpite inimigo: ${distance}KM`;
+  } else {
+    document.getElementById('distanceResult').innerText = 'O adversario ainda não fez o palpite';
+  }
 });

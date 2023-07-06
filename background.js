@@ -28,11 +28,3 @@ chrome.webRequest.onCompleted.addListener(async (request) => {
       console.error('Error fetching data:', error);
     }
 }, { urls: ['<all_urls>'] });
-
-chrome.action.onClicked.addListener((tab) => {
-  chrome.scripting.executeScript({
-    target: { tabId: tab.id },
-    files: ['popup.js']
-  });
-});
-
