@@ -9,6 +9,13 @@
   "background": {
     "service_worker": "background.js"
   },
+
+  "content_scripts": [
+    {
+      "matches": ["https://www.geoguessr.com/*"],
+      "js": ["script.js"]
+    }
+  ],
   "host_permissions": [
     "<all_urls>"
   ],
@@ -17,6 +24,7 @@
     "notifications",
     "storage",
     "scripting",
+    "tabs",
     "activeTab"
   ],
   "icons": {

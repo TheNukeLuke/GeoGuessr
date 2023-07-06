@@ -22,13 +22,26 @@ async function display() {
     const countyName = address.county ? address.county : 'County name not found';
     const stateName = address.state ? address.state : 'State/Region name not found';
     const countryName = address.country ? address.country : 'Country name not found';
+    const countryCode = address.country_code ? address.country_code.toLowerCase() : null;
 
-    coordDisplayer.innerHTML = `Coordinates: ${latitude}, ${longitude}<br>City: ${cityName}<br>County: ${countyName}<br>State/Region: ${stateName}<br>Country: ${countryName}`;
+    coordDisplayer.innerHTML = `Coordinates: ${latitude}, ${longitude}<br>City: ${cityName}<br>County: ${countyName}<br>State/Region: ${stateName}<br>Country: ${countryName}<br>Country Code: ${countryCode ? countryCode.toUpperCase() : 'Country code not found'}`;
+
+    if (countryCode) {
+      let flagURL = `https://flagcdn.com/w80/${countryCode}.png`;
+      let flagImg = document.createElement('img');
+      flagImg.style.width = '12px';
+      flagImg.style.height = '9px';
+      flagImg.src = flagURL;
+      coordDisplayer.appendChild(flagImg);
+    } else {
+      console.error('No country code found');
+    }
   } catch (error) {
     console.error('Error fetching location information:', error);
     coordDisplayer.innerHTML = 'An error occurred';
   }
 }
+
 display();
 
 // Função para obter as coordenadas
@@ -92,111 +105,20 @@ function placeMarker(newLat, newLng) {
 }
 
 function CidadeProxima(latitude, longitude) {
-  const apiUrl = `http://api.geonames.org/findNearbyPlaceNameJSON?lat=${latitude}&lng=${longitude}&username=nukeluke`;
-  fetch(apiUrl)
+  var requestOptions = {
+    method: 'GET',
+  };
+  fetch(`https://api.geoapify.com/v1/geocode/reverse?lat=${latitude}&lon=${longitude}&apiKey=7bdc955ef5a44a3d960b707b74310d29`, requestOptions)
     .then(response => response.json())
     .then(data => {
-      if (data.geonames.length > 0) {
-        const cidadeMaisProxima = data.geonames[0].toponymName;
+      if (data.features.length > 0) {
+        const cidadeMaisProxima = data.features[0].properties.city;
         document.getElementById('cidadePerto').innerText = `Cidade mais próxima: ${cidadeMaisProxima}`;
       } else {
         document.getElementById('cidadePerto').innerText = 'Nenhuma cidade encontrada nas coordenadas fornecidas.';
       }
     })
-}
-
-function findID() {
-  const y = document.getElementsByClassName("user-nick_root__DUfvc")[0]
-  const keys = Object.keys(y)
-  const key = keys.find(key => key.startsWith("__reactFiber$"))
-  const props = y[key]
-  const id = props.return.memoizedProps.userId
-  return id
-}
-
-function findEnemyTeam(teams, userID) {
-  const player0 = teams[0].players[0].playerId
-  if (player0 !== userID) {
-      return teams[0]
-  } else {
-      return teams[1]
-  }
-}
-
-function isRoundValid(gameState, guesses) { 
-  const currentRound = gameState.currentRoundNumber
-  const numOfUserGuesses = guesses ? guesses.length : 0;
-  return currentRound === numOfUserGuesses
-}
-
-function getEnemyGuess() {
-  const x = document.getElementsByClassName("game_layout__TO_jf")[0]
-  if (!x) {
-      return null
-  }
-  const keys = Object.keys(x)
-  const key = keys.find(key => key.startsWith("__reactFiber$"))
-  const props = x[key]
-  const teamArr = props.return.memoizedProps.gameState.teams
-  const enemyTeam = findEnemyTeam(teamArr, findID())
-  const enemyGuesses = enemyTeam.players[0].guesses
-  const recentGuess = enemyGuesses[enemyGuesses.length - 1]
-
-  if (!isRoundValid(props.return.memoizedProps.gameState, enemyGuesses)) {
-      return null;
-  }
-  return recentGuess.distance
-}
-
-function fetchEnemyDistance() {
-  const enemyGuess = getEnemyGuess(); 
-
-  if (enemyGuess === null) {
-    return null;
-  }
-
-  const [latInimigo, lonInimigo] = enemyGuess;
-
-  const distance = calculateDistance(latInimigo, lonInimigo, latitude, longitude);
-  return distance;
-}
-
-function toRadians(degrees) {
-  return degrees * (Math.PI / 180);
-}
-
-function calculateDistance(latitude, longitude, latInimigo, lonInimigo) {
-  const earthRadius = 6371; // Raio médio da Terra em quilômetros
-
-  // Converter as coordenadas para radianos
-  const lat1Rad = toRadians(latitude);
-  const lon1Rad = toRadians(longitude);
-  const lat2Rad = toRadians(latInimigo);
-  const lon2Rad = toRadians(lonInimigo);
-
-  // Diferença das coordenadas
-  const deltaLat = lat2Rad - lat1Rad;
-  const deltaLon = lon2Rad - lon1Rad;
-
-  // Cálculo da distância usando a fórmula de haversine
-  const a = Math.sin(deltaLat / 2) * Math.sin(deltaLat / 2) +
-            Math.cos(lat1Rad) * Math.cos(lat2Rad) *
-            Math.sin(deltaLon / 2) * Math.sin(deltaLon / 2);
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  const distance = earthRadius * c;
-
-  return distance;
-}
-
-// Função para exibir a distância do palpite do inimigo
-function displayEnemyDistance() {
-  const enemyDistance = fetchEnemyDistance();
-
-  if (enemyDistance !== null) {
-    document.getElementById('distanceResult').textContent = `Distância do palpite do inimigo: ${enemyDistance.toFixed(2)} km`;
-  } else {
-    document.getElementById('distanceResult').textContent = 'Não foi possível obter a distância do palpite do inimigo.';
-  }
+    .catch(error => console.log('error', error));
 }
 
 // Evento "click" no botão submitBtn
@@ -237,12 +159,5 @@ document.getElementById('cidPerto').addEventListener('click', () => {
 });
 
 //Evento de clique no botão para exibir a distância do palpite do inimigo
-document.getElementById('palpInimigo').addEventListener('click', () => {
-  console.log("Distancia")
-  distance = displayEnemyDistance();
-  if (distance > 0) {
-    document.getElementById('distanceResult').innerText = `Distancia do palpite inimigo: ${distance}KM`;
-  } else {
-    document.getElementById('distanceResult').innerText = 'O adversario ainda não fez o palpite';
-  }
-});
+//document.getElementById('palpInimigo').addEventListener('click', () => {
+//});
